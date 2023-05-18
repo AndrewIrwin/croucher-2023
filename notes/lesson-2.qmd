@@ -1,0 +1,19 @@
+---
+title: "Bayesian methods"
+format: html
+editor: source
+---
+
+## brms & stan
+
+## Temperature respone functions
+
+
+## GAMs with brms
+
+## Differential equations and growth rate
+
+
+## Food web model
+
+

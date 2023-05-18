@@ -1,0 +1,63 @@
+---
+title: "Resources"
+format: html
+editor: visual
+---
+
+## Data
+
+Data for this mini-course are in the [GitHub repository](https://github.com/AndrewIrwin/croucher-2023) in the folder `data`. Sources are described below.
+
+### Station CARIACO
+
+The [CARIACO](https://en.wikipedia.org/wiki/CARIACO_Ocean_Time_Series_Program) project was a 22 year (1995-2017) project based off the coast of Venezuela.
+
+-   Compilation of phytoplankton and zooplankton abundance from Station CARIACO. Total biomass and counts of 30-60 zooplankton types from 153 monthly samples. [BCO-DMO](https://www.bco-dmo.org/project/2047).
+
+### Darwin model output
+
+Darwin is a marine ecosystem/biogeochemical/optical model that is part of the MITgcm. The simulation reported here includes 50 plankton types spanning a number of functional types and size classes, following Follett *et al* (2022). The simulation was global on a coarse (1 degree lat/long) grid using realistic 3D physical fields (Wunch and Heimbach, 2007). It was run for 10 "generic" years and output provided here are from the 10th year (monthly averages). I have simplified the output considerably; the full output can be found at the links below.
+
+-   Darwin + MITgcm computer code. Model code: [Darwin3](https://github.com/darwinproject/darwin3) (see pkg/darwin) [Documentation](https://darwin3.readthedocs.io/en/latest/phys_pkgs/darwin.html). Code [browser + search](https://gud.mit.edu/darwin3/source/?v=darwin3)
+-   Dukiewicz, Stephanie (2021) Darwin3 31+16+3 model output: annual mean surface plankton biomass. Harvard Dataverse. [10.7910/DVN/FEWXB4](https://doi.org/10.7910/DVN/FEWXB4)
+-   Dutkiewicz, Stephanie; Jahn, Oliver. (2021) Darwin3 31+16+3 model code, datafiles and parameters. Harvard Dataverse. [10.7910/DVN/ISJQ1W](https://doi.org/10.7910/DVN/ISJQ1W)
+
+## Lesson 1
+
+-   Muller-Karger, F.E., Astor, Y.M., Benitez-Nelson, C.R., Buck, K.N., Fanning, K.A., Lorenzoni, L., Montes, E., Rueda-Roa, D.T., Scranton, M.I., Tappa, E. and Taylor, G.T. (2019). The scientific legacy of the CARIACO ocean time-series program. *Annual Review of Marine Science* **11**: 413-437. [10.1146/annurev-marine-010318-095150](https://doi.org/10.1146/annurev-marine-010318-095150)
+-   Hastie, T., Qian, J., & Tay, K. (2023). An Introduction to glmnet. [CRAN R Repositary](https://cloud.r-project.org/web/packages/glmnet/vignettes/glmnet.pdf).
+-   Wood, S. N. (2017). Generalized additive models: an introduction with R. CRC press.
+
+## Lesson 2
+
+-   Irwin, AJ & Finkel, ZV. (2018) [Phytoplankton functional types: A trait perspective](https://www.mmab.ca/pubs/irwin-2018-traits-gasol-kirchman.pdf). In Gasol and Kirchman \[eds\] Microbial Ecology of the Oceans. [Wiley](https://www.wiley.com/en-ca/Microbial+Ecology+of+the+Oceans%2C+3rd+Edition-p-9781119107187). Chapter 11, pp. 435-465. [bioRxiv preprint 10.1101/148312](https://doi.org/10.1101/148312)
+-   Bürkner, P. C. (2017). [brms: An R package for Bayesian multilevel models using Stan](https://www.jstatsoft.org/article/view/v080i01). *Journal of statistical software*, **80**: 1-28.
+
+## Lesson 3
+
+-   Flombaum, P., Gallegos, J. L., Gordillo, R. A., Rincón, J., Zabala, L. L., Jiao, N., Karl, D. M., Li, W. K. W., Lomas, M. W., Veneziano, D., Vera, C. S. & Martiny, A. C. (2013). Present and future global distributions of the marine Cyanobacteria Prochlorococcus and Synechococcus. *Proceedings of the National Academy of Sciences*, *110*(24), 9824-9829.
+
+## Lesson 4
+
+-   Follett, C. L., Stephanie Dutkiewicz, François Ribalet, Emily Zakem, David Caron, E. Virginia Armbrust, and Michael J. Follows (2022) Trophic interactions with heterotrophic bacteria limit the range of *Prochlorococcus*. *PNAS* **119**: e2110993118. [10.1073/pnas.2110993118](https://doi.org/10.1073/pnas.2110993118)
+
+-   Wunsch, C., & Heimbach, P. (2007). Practical global oceanic state estimation. *Physica D: Nonlinear Phenomena*, **230**(1-2), 197-208.
+
+## General computing
+
+-   [R](https://www.r-project.org/) and [RStudio](https://posit.co/download/rstudio-desktop/)
+-   [Julia](https://julialang.org/) programming language
+-   [Stan](https://mc-stan.org/) probabilistic programming language for Bayesian modelling
+-   Irwin, A. J. (2022) [Data Visualization](https://andrewirwin.github.io/data-viz-notes/), Dalhousie University course textbook.
+
+Papers by A. J. Irwin can be found at [mmab.ca](https://www.mmab.ca/publications/).
+
+## Further Reading
+
+Pedersen, E. J., Miller, D. L., Simpson, G. L., & Ross, N. (2019). Hierarchical generalized additive models in ecology: an introduction with mgcv. *PeerJ*, *7*, e6876. [10.7717/peerj.6876](https://doi.org/10.7717/peerj.6876)
+
+Hierarchical species distribution models.
+
+-   Norberg, Anna *et al.* (2019) A comprehensive evaluation of predictive performance of 33 species distribution models at species and community levels. *Ecological Monographs*, **89:** e01370. [10.1002/ecm.1370](https://dx.doi.org/10.1002/ecm.1370)
+
+-   Ovaskainen, Otso, Gleb Tikhonov, Anna Norberg, F. Guillaume Blanchet, Leo Duan, David Dunson, Tomas Roslin and Nerea Abrego (2017) How to make more out of community data? A conceptual framework and its implementation as models and software. *Ecology Letters* **20**: 561-576. [10.1111/ele.12757](https://dx.doi.org/10.1111/ele.12757)

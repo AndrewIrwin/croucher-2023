@@ -1,0 +1,12 @@
+---
+title: "About"
+---
+
+All the notes for this mini-course are on GitHub in the project [AndrewIrwin/croucher-2023](https://github.com/AndrewIrwin/croucher-2023).
+
+
+## About the author and course instructor
+
+These course notes were written by Andrew Irwin (Department of Mathematics & Statistics at Dalhousie University in Halifax, Nova Scotia, Canada).  Andrew’s research applies mathematical and statistical models to problems in biological oceanography, particularly questions about phytoplankton biogeography, productivity, and their role in biogeochemical cycles. The prospect of large-scale systemic change over the next century plays a key motivating role in the desire to understand this important system more fully. Andrew co-directs the [Marine Microbial Macroecology Lab](https://www.mmmlab.ca) at Dalhousie and more information about his research can be found there.
+
+
