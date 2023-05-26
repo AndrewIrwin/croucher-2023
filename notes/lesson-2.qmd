@@ -9,6 +9,84 @@ editor: source
 ## Temperature respone functions
 
 
+## Simulation
+
+```{r}
+df1 <- tibble(temperature = 1:30,
+              growth = exp(-0.1*(temperature-20)^2),
+              observation = growth * rnorm(30, 1, 0.1))
+)
+df1 |> ggplot() + geom_line(aes(temperature, growth)) + 
+  geom_point(aes(temperature, observation)) + 
+  theme_bw()
+```
+
+Fit. How do I constrain parameters to be positive?
+
+```{r}
+library(brms)
+prior1 <- prior(normal(1, 2), nlpar = "b1") +
+  prior(normal(-2, 2), nlpar = "b2") + 
+  prior(normal(20, 2), nlpar = "b3") 
+fit1 <- brm(bf(observation ~ b1 * exp(b2 * (temperature- b3)^2), b1 + b2 + b3 ~ 1, nl = TRUE),
+            data = df1, prior = prior1,
+            iter = 5000)
+```
+
+Output
+
+```{r}
+summary(fit1)
+```
+
+Traceplots and posterior distributions
+
+```{r}
+plot(fit1)
+```
+
+```{r}
+library(tidybayes)
+get_variables(fit1)
+fit1 |> gather_draws(b_b1_Intercept, b_b2_Intercept, b_b3_Intercept) |> median_qi() |>
+  ggplot() +
+  geom_pointinterval(aes(x = .value, xmin = .lower, xmax = .upper,
+                         y= .variable))
+```
+
+```{r}
+plot(conditional_effects(fit1), points = TRUE)
+```
+
+posterior predictive checks
+
+```{r}
+library(bayesplot)
+pp_check(fit1)
+```
+
+Compare two models
+
+```{r}
+loo(fit1, fit2)
+```
+
+
+Condensed posterior distributions.
+
+```{r}
+library(ggdist)
+
+```
+
+
+## Multiple species
+
+ ult ~ 1 + (1 | AY)
+ 
+ See https://cran.r-project.org/web/packages/brms/vignettes/brms_nonlinear.html
+ 
+
 ## GAMs with brms
 
 ## Differential equations and growth rate
