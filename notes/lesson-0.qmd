@@ -1,0 +1,12 @@
+---
+title: "Getting ready"
+---
+
+
+Computer goals:
+
+Primary software R.
+
+Secondary software: stan through and R interface. Requires extra effort to install.
+
+Use Rstudio.cloud (HKUST has a [workshop](https://library.hkust.edu.hk/services/research-support/researchers-series/#R) using this cloud service)

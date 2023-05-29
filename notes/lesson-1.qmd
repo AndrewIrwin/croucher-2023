@@ -4,6 +4,24 @@ format: html
 editor: source
 ---
 
+```{r echo=FALSE, message=FALSE}
+library(tidyverse, quietly = TRUE)
+library(glmnet)
+library(mgcv)
+
+```
+## Theme for the lesson
+
+Think about ways to apply linear regression to the question: What determines the abundance of plankton species?
+
+## Oceanographic context
+
+Phytoplankton and small zooplankton have short generation times and respond quickly to environmental forcing. We usually observe higher phytoplankton biomass where there are more resources and growing conditions are good. Try to make a statistical model predicting the abundance of a plankton species assuming the population is in steady state with its environment.
+
+Key objections: advection of populations will mean the cells did not necessarily grow where they were found; predator-prey dynamics mean that biomass of prey might be low even if conditions for growth are excellent, because conditions for growth of the predator may also be excellent.
+
+What can we expect to learn: variables that strongly or weakly influence abundance or presence of a species or group of species; differences in these effects across taxa; characterization of the niche of a taxon.
+
 ## Cariaco time series
 
 The CARIACO project (Carbon Retention in a Colored Ocean) ran for about 20 years from 1995-2017. Samples were collected in most months, with an increasing number of gaps near the end of the project. A primary goal of the project was to better understand carbon export in this part of the ocean which is notable for its well preserved and laminated sediments. Here we will use the samples of phytoplankton and zooplankton from the upper mixed layer.
@@ -12,10 +30,25 @@ Data are arcived on BCO-DMO. A subset of the data we will use is in the github p
 
 ## Linear models
 
+What factors do we know affect phytoplankton abundance, that are available at this site? Physical conditions (temperature, salinity, light, pH) and resource availability (macronutrient concentrations.)
+
+Start with a simple approach: look for a linear relationship between the physical and chemical predictors and the abundance of a species.
+
+For comparison, try making a logistic regression model of the presence or absence of a species.
+
+Problem: predictors are correlated. Show heatmap.
+
+Remove a predictor (important or unimportant). Look to see how the coefficients change.
+
+
 ## Generalized linear models and LASSO/ElasticNet
+
+Use variable selection with LASSO to build the same models, but with a penalty for variables that have little effect on model performance.
+
 
 ## Generalized additive models
 
+What about non-linear responses?
 
 
 Abundances
@@ -27,5 +60,7 @@ Log ratios
 
 ## Extensions
 
-* Phylogeny, co-occurrence, 
+* Phylogeny, abundance of other taxa, time-dependent dynamics
+* Non-linear models with interactions: random forests, XGBoost, neural networks
+
 
