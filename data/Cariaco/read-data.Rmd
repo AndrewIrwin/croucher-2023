@@ -1,0 +1,197 @@
+---
+title: "cariaco"
+author: "AJ Irwin"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(naniar)
+```
+
+## Phytoplankton
+
+```{r}
+fn <- here::here("data/Cariaco/phytoplankton.txt")
+h <- readLines(fn, n = 1) # read header
+col_names_v <- str_squish(h) |> str_split(" ")
+phyto <- read_fwf(fn, na = "nd", skip = 1,
+                  fwf_empty(file = fn, col_names = col_names_v[[1]]))
+ # get a warning about a problem in column 19 of row 3314; ignore for now
+```
+
+Some exploratory plots.
+
+```{r}
+# gg_miss_case(phyto)
+phyto |> select(-(Cruise:ScientificName_accepted)) |> gg_miss_var(show_pct = TRUE)
+frac <- function(x) x - floor(x)
+phyto |> count(ScientificName_accepted)
+ss1 <- phyto |> 
+  filter(Year_local > 1995, Year_local < 2016) |>
+  mutate(dd = decimal_date(Datetime_local)) |>
+  group_by(Cruise, dd, Year_local) |>
+  summarize(across(starts_with("d_"), sum), .groups = "drop") |>
+  pivot_longer(starts_with("d_"), names_to = "depth") |>
+  mutate(depth = str_remove_all(depth, "(d_|m)") |> as.numeric()) |> 
+  filter(value > 0) 
+ss1 |>
+  ggplot(aes(dd, value, color = depth)) + geom_point() +
+  # geom_smooth(formula = y~ s(x), method = "gam", aes(group = depth), se = FALSE) +
+  geom_smooth(formula = y~ x, method = "loess", span = 0.2, aes(group = depth), se = FALSE) +
+  scale_y_log10() + 
+  theme_bw() +
+  labs(y = "Phytoplankton total abundance (#/L)",
+       x = "Sample date", 
+       color = "Depth (m)")
+ss1 |>
+  ggplot(aes(frac(dd), value, color = depth)) + geom_point() +
+  # geom_smooth(formula = y~ s(x), method = "gam", aes(group = depth), se = FALSE) +
+  # geom_smooth(formula = y~ x, method = "loess", span = 0.2, aes(group = depth), se = FALSE) +
+  scale_y_log10() + 
+  facet_wrap(~ Year_local) +
+  theme_bw() +
+  labs(y = "Phytoplankton total abundance (#/L)",
+       x = "Fractional year", 
+       color = "Depth (m)")
+ss1 |>
+  filter(depth < 2 ) |>
+  ggplot(aes(frac(dd), value, color = Year_local)) + geom_point() +
+  geom_smooth(formula = y~ s(x), method = "gam", se = TRUE) +
+  # geom_smooth(formula = y~ x, method = "loess", span = 0.2, se = FALSE) +
+  scale_y_log10() + 
+  theme_bw() +
+  labs(y = "Phytoplankton total abundance (#/L)",
+       x = "Fractional year", 
+       color = "Year")
+```
+
+
+## Zooplankton
+
+```{r}
+# zoo <- read_table("zooplankton.txt", na = "nd")
+fn <- here::here("data/Cariaco/zooplankton.txt")
+h <- readLines(fn, n = 1)
+col_names_v <- str_squish(h) |> str_split(" ")
+zoo <- read_fwf(fn, na = "nd", skip = 1,
+                fwf_empty(file = fn, col_names = col_names_v[[1]]))
+```
+
+Exploratory plots.
+
+```{r}
+gg_miss_case(zoo)
+zoo |> select(-(Cruise:Mesh_Size)) |> gg_miss_var(show_pct = TRUE)
+zoo |>
+  select(Date, Month, Mesh_Size, BIOMASS, ASH, COPEPODS, CHAETOGNATHA, OSTRACODA, FORAMINIFERA, AMPHIPODS, EUPHAUSIIDS, MEDUSA, PTEROPODS, SALPS, CTENOPHORES) |>
+  # pivot_longer(COPEPODS:JUV_GASTROPOD) |>
+  pivot_longer(BIOMASS:CTENOPHORES) |>
+  ggplot(aes(Month, value, color = factor(Mesh_Size))) + 
+  # geom_point() +
+  stat_summary(fun.data = "mean_cl_boot", size = 0.5) +  # median_hilow, mean_cl_boot
+  facet_wrap(~name, scales = "free_y") +
+  scale_y_log10() + 
+  theme_bw() +
+  labs(color = "Mesh Size", 
+       y = "Abundance or Biomass (# or mg / m3)")
+```
+
+Time series
+
+```{r}
+zoo |>
+  select(Date, Month, Mesh_Size, BIOMASS,  COPEPODS, CHAETOGNATHA, OSTRACODA, FORAMINIFERA, AMPHIPODS,  PTEROPODS, SALPS) |>
+  # pivot_longer(COPEPODS:JUV_GASTROPOD) |>
+  pivot_longer(BIOMASS:SALPS) |>
+  ggplot(aes(Date, value, color = factor(Mesh_Size))) + 
+  geom_point(size = 0.4) +
+   # stat_summary(fun.data = "mean_cl_boot", size = 0.2) +  # median_hilow, mean_cl_boot
+  facet_wrap(~name, scales = "free_y") +
+  scale_y_log10() + 
+  theme_bw() +
+  labs(color = "Mesh Size", 
+       y = "Abundance or Biomass (# or mg / m3)") + 
+  theme(legend.position = c(0.8, 0.15))
+ggsave("cariaco-zoo-time.pdf", height = 4.5, width = 7)
+```
+
+Heatmap
+
+```{r}
+zoo |>
+  pivot_longer(COPEPODS:JUV_GASTROPOD) |>
+  filter(Mesh_Size == 200) |>
+  ggplot(aes(Cruise, name, fill = log10(value))) + 
+  geom_tile() + 
+  theme_bw() +
+  labs(y="")
+```
+
+## Niskin bottle data
+
+```{r}
+fn <- here::here("data/Cariaco/niskin.txt")
+h <- readLines(fn, n = 1)
+col_names_v <- str_squish(h) |> str_split(" ")
+niskin <- read_fwf(fn, na = "nd", skip = 1,   # can't use a compressed file here
+                   fwf_empty(file = fn, col_names = col_names_v[[1]]))
+  # ignore warning about 14 parsing errors in rows 4, 6, 13, 14, 17, 44.
+niskin |> select(-(Cruise_number:Depth_real)) |> gg_miss_var(show_pct = TRUE)
+```
+
+Some exploratory plots.
+
+```{r}
+niskin |> filter(Depth_target == 1) |> 
+  select(Year, Month, NO3_NO2_USF, PO4_USF, SiO4_USF, Temperature, Salinity_bottles, 
+         POC_ug_kg, PON_ug_kg, Chlorophyll) |>
+  pivot_longer(NO3_NO2_USF:Chlorophyll) |>
+  ggplot(aes(x = factor(Month), # Year + (Month-0.5)/12,
+             y = value)) +
+  # geom_point() +
+  geom_boxplot() + 
+  facet_wrap(~ name, scales = "free_y") +
+  theme_bw()
+
+```
+
+## Organize subset of data for course
+
+Select a few species and a few environmental variables for use in Lesson 1.
+
+Exercise: Add functional group annotations by looking up taxa in MarineSpecies.org.
+
+```{r}
+select_taxa <- c("Bacillariophyceae", "Dinoflagellata", 
+                 "Thalassiosira eccentrica", "Thalassiosira gravida",
+                 "Gyrodinium pingue", "Prorocentrum micans")
+phyto_ss <- phyto |> rename(Year = Year_local, Month = Month_local, Day = Day_local,
+                Cruise_ID = Cruise_ID_2) |>
+  select(Cruise, Cruise_ID, Year, Month, Datetime_local, ScientificName_accepted,
+         d_1m, d_7m) |>
+  # count(ScientificName_accepted) |> arrange(-n)
+  filter(ScientificName_accepted %in% select_taxa) |>
+  group_by(Cruise, Cruise_ID, Year, Month, Datetime_local, ScientificName_accepted) |>
+  summarise(d_1m = sum(d_1m),
+            d_7m = sum(d_7m),
+            .groups = "drop") |>
+  pivot_longer(d_1m:d_7m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_extract(depth, "[0-9]") |> as.numeric() )
+zoo_ss <- zoo |> 
+  select(Cruise, Cruise_ID, Date, Mesh_Size, TOTAL_DENSITY, BIOMASS, COPEPODS, CHAETOGNATHA)
+niskin_ss <- niskin |> rename(Cruise_ID = Cruise_ID_2, depth = Depth_target) |>
+  filter(depth < 10) |>
+  select(Cruise_ID, depth, 
+         NH4_USF, NO2_USF, NO3_NO2_USF, PO4_USF, SiO4_USF, pH, Alkalinity_umol_kg,
+         TCO2, Salinity_bottles, Temperature, POC_ug_kg, PON_ug_kg, TPP, DOC, PrimaryProductivity,
+         Chlorophyll)
+write_csv(phyto_ss, here::here("data/Cariaco/phyto-ss.csv"))
+write_csv(zoo_ss, here::here("data/Cariaco/zoo-ss.csv"))
+write_csv(niskin_ss, here::here("data/Cariaco/niskin-ss.csv"))
+# full_join(niskin_ss, phyto_ss, by = c("Cruise_ID", "depth") )
+# full_join(niskin_ss, zoo_ss, by = c("Cruise_ID") )
+```
