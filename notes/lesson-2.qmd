@@ -15,7 +15,6 @@ editor: source
 df1 <- tibble(temperature = 1:30,
               growth = exp(-0.1*(temperature-20)^2),
               observation = growth * rnorm(30, 1, 0.1))
-)
 df1 |> ggplot() + geom_line(aes(temperature, growth)) + 
   geom_point(aes(temperature, observation)) + 
   theme_bw()
