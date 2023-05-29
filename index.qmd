@@ -4,6 +4,7 @@ title: "Croucher-2023"
 
 These notes contain lessons on the following topics:
 
+* [Lesson 0](notes/lesson-0.qmd) has instructions for getting the required software on to your computer,
 * [Lesson 1](notes/lesson-1.qmd) an introduction to species distribution modelling,
 * [Lesson 2](notes/lesson-2.html) using Bayesian statistical modelling,
 * [Lesson 3](notes/lesson-3.qmd) machine learning for species distribution modelling, and

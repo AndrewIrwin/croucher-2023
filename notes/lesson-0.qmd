@@ -2,11 +2,39 @@
 title: "Getting ready"
 ---
 
+## Goal
 
-Computer goals:
+This lesson will show you how to install required software on your computer.
 
-Primary software R.
+In this mini-course we will use the statistical software R with the RStudio interface. We will also use many add-on packages.
 
-Secondary software: stan through and R interface. Requires extra effort to install.
+Optional tools:
 
-Use Rstudio.cloud (HKUST has a [workshop](https://library.hkust.edu.hk/services/research-support/researchers-series/#R) using this cloud service)
+* Bayesian modelling and programming software Stan
+* R packages that work with Stan
+* Virtual environment software Docker that allows you to install Darwin and DarOne
+
+## Short-cut
+
+The R software you need can be accessed through rstudio.cloud using an environment I have configured for this course. The enviroment is linked [here](https://posit.cloud/spaces/379565/content/6036010) # only necessary for Linux without the nodejs library / headers
+install.packages("rstan", repos = "https://cloud.r-project.org/", dependencies = TRUE)). There is a limit of about 10 hours a month computing time for a free account.
+
+## Installation
+
+* Download and install R from [CRAN](https://cran.r-project.org/)
+* Download and install RStudio from [Posit](https://posit.co/downloads/)
+* Launch R
+* Install the packages using the following code (cut and paste into the R console)
+
+```
+package_list <- c("tidyverse", "glmnet", "glmnetUtils", "mgcv", "broom", "gratia")
+install.packages(package_list)
+```
+
+
+### Optional
+
+* Download and install [git](https://andrewirwin.github.io/data-viz-notes/lessons/106-version-control.html#setup) (there are separate instructions for windows and mac)
+* Download and install [Stan](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started) (this can be a bit challenging; unless you have a lot of experience installing software, I suggest you use the [rstudio.cloud](https://posit.cloud/spaces/379565/content/6036010) environment I have created)
+
+

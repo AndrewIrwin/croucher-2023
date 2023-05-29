@@ -7,12 +7,15 @@ editor: source
 ```{r echo=FALSE, message=FALSE}
 library(tidyverse, quietly = TRUE)
 library(glmnet)
+library(glmnetUtils)
 library(mgcv)
-
+library(broom)
+library(gratia)
 ```
-## Theme for the lesson
+## Goals
 
-Think about ways to apply linear regression to the question: What determines the abundance of plankton species?
+* Learn ways to apply linear regression to the question: What determines the abundance of plankton species?
+
 
 ## Oceanographic context
 
@@ -26,7 +29,62 @@ What can we expect to learn: variables that strongly or weakly influence abundan
 
 The CARIACO project (Carbon Retention in a Colored Ocean) ran for about 20 years from 1995-2017. Samples were collected in most months, with an increasing number of gaps near the end of the project. A primary goal of the project was to better understand carbon export in this part of the ocean which is notable for its well preserved and laminated sediments. Here we will use the samples of phytoplankton and zooplankton from the upper mixed layer.
 
-Data are arcived on BCO-DMO. A subset of the data we will use is in the github project.
+Data are archived on BCO-DMO. Here we use a subset of the full dataset. I encourage you to look at the full dataset, for example, to access data from depths below 7 m.
+
+```{r}
+phyto <- read_csv(here::here("data/Cariaco", "phyto-ss.csv"))
+niskin <- read_csv(here::here("data/Cariaco", "niskin-ss.csv"))
+```
+
+Average the top two depths. Select one species. Combine phytoplankton count data and environment data.
+
+```{r}
+one_spp <- full_join(
+  phyto |> filter(ScientificName_accepted == "Thalassiosira gravida") |>
+    group_by(Cruise_ID, Year, Month, ScientificName_accepted) |>
+    summarize(abundance = mean(abundance, na.rm=TRUE), .groups = "drop"),
+  niskin |> group_by(Cruise_ID) |>
+    summarize(across(is.numeric, mean, na.rm=TRUE), .groups = "drop") |>
+    select(-depth),
+  by = "Cruise_ID"
+) |>
+  mutate(log_abundance = log(abundance),
+         presence = abundance > 0)
+```
+
+Make a few exploratory plots to show how abundance varies with temperature, chlorophyll.
+
+```{r}
+one_spp |> ggplot(aes(Temperature, abundance)) +
+  geom_point() +
+  scale_y_log10() +
+  theme_bw()
+```
+
+```{r}
+one_spp |> ggplot(aes(Chlorophyll, abundance)) +
+  geom_point() +
+  scale_y_log10() +
+  theme_bw()
+```
+
+```{r}
+one_spp |> ggplot(aes(NO3_NO2_USF, abundance)) +
+  geom_point() +
+  scale_y_log10() +
+  theme_bw()
+```
+
+
+```{r}
+one_spp |> ggplot(aes(Month, abundance)) +
+  geom_point() +
+  scale_y_log10() +
+  theme_bw()
+```
+
+
+
 
 ## Linear models
 
@@ -40,23 +98,201 @@ Problem: predictors are correlated. Show heatmap.
 
 Remove a predictor (important or unimportant). Look to see how the coefficients change.
 
+```{r}
+model1 <- lm(abundance ~ Year + Month + NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Salinity_bottles + Temperature + Chlorophyll,
+             data = one_spp)
+summary(model1)
+model2 <- lm(log_abundance ~ Year + Month + NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Salinity_bottles + Temperature + Chlorophyll,
+             data = one_spp |> filter(abundance>0))
+summary(model2)
+```
+
+Drop out some variables.
+
+```{r}
+model3 <- lm(log_abundance ~ Month + NO3_NO2_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Temperature + Chlorophyll,
+             data = one_spp |> filter(abundance>0))
+summary(model3)
+```
+
+### Presence-absence model
+
+```{r}
+
+model4 <- glm(presence ~ Month + NO3_NO2_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Temperature + Chlorophyll,
+             data = one_spp,
+             family = binomial)
+summary(model4)
+tidy(model4, conf.int = TRUE)
+```
+
+
+Predictions. `type.predict` can be `link` (meaning the prediction is "on the scale" of the predictors -- the logit of the predicted probability) or `response` (the prediction is on the scale of the response variable, a probability between 0 and 1.)
+
+```{r}
+augment(model4, newdata = one_spp, type.predict = "response") |> 
+  ggplot(aes(.fitted, fill = presence)) +
+  geom_histogram() + 
+  theme_bw()
+augment(model4, newdata = one_spp, type.predict = "link") |> 
+  count(presence, .fitted > 0)
+# augment(model4, newdata = one_spp, type.predict = "response") |> 
+#   count(presence, .fitted > 0.5)
+```
 
 ## Generalized linear models and LASSO/ElasticNet
 
 Use variable selection with LASSO to build the same models, but with a penalty for variables that have little effect on model performance.
 
+`glmnet` does not have a formula interface, but the package `glmnetUtils` provides one. With just `glmnet` you need to make a vector of the response data (abudance or log abundance) and a matrix of the predictors (nutrients, temperature, etc.) There is a concise [overview](https://cran.r-project.org/web/packages/glmnetUtils/vignettes/intro.html) of the basic functions of `glmnetUtils`.
+
+```{r}
+glm_model1 <- glmnet(abundance ~ Year + Month + NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Salinity_bottles + Temperature + Chlorophyll,
+             data = one_spp, 
+             alpha = 0.5)
+glm_model1
+glm_model2 <- glmnet(log_abundance ~ Year + Month + NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + TCO2 + Salinity_bottles + Temperature + Chlorophyll,
+             data = one_spp |> filter(abundance>0))
+glm_model2
+```
+
+It's important to have no missing data in the data used for predictions. If you do, you get no prediction and the rows of the data and the predictions won't match.
+
+```{r}
+one_spp_ss <- one_spp |> filter(!is.na(Year + Month + 
+    NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + 
+    TCO2 + Salinity_bottles + Temperature + Chlorophyll))
+predictions1 <- predict(glm_model1, 
+                        newdata = one_spp_ss)
+bind_cols(one_spp_ss, predictions1) |>
+  ggplot(aes(abundance, s50)) + 
+  geom_point() + 
+  scale_x_log10() + scale_y_log10() + 
+  theme_bw()
+```
+
+
+```{r}
+predictions2 <- predict(glm_model2, 
+                        newdata = one_spp_ss)
+bind_cols(one_spp_ss, predictions2) |>
+  ggplot(aes(log_abundance, s50)) + 
+  geom_point() + 
+  geom_abline(aes(intercept = 0, slope = 1), color = "blue", linetype = "dotted") + 
+  # scale_x_log10() + scale_y_log10() + 
+  theme_bw()
+```
+
+### Presence-absence
+
+```{r}
+glm_model3 <- glmnet(presence ~ Year + Month + NH4_USF + NO3_NO2_USF + PO4_USF + SiO4_USF + pH + Alkalinity_umol_kg + 
+                       TCO2 + Salinity_bottles + Temperature + Chlorophyll,
+             data = one_spp_ss,
+             family = binomial)
+glm_model3
+```
+```{r}
+predictions3 <- predict(glm_model3, 
+                        newdata = one_spp_ss)
+bind_cols(one_spp_ss, predictions3) |>
+  ggplot(aes(fill = presence, x= s50)) + 
+  geom_histogram() + 
+  theme_bw()
+bind_cols(one_spp_ss, predictions3) |> #  |> as_tibble() |> 
+  count(presence, s50 > 0)
+```
+
+True skill statistic  (TSS) is number correct divided by total number. TSS takes into account both omission and commission errors, and success as a result of random guessing, and ranges from −1 to +1, where +1 indicates perfect agreement and values of zero or less indicate a performance no better than random. TSS is not affected by prevalence.
+
+First, construct the confusion matrix with the following entries:
+
+* `a` true positives
+* `b` false positives (predicted presence, observed absence)
+* `c` false negatives (predicted absence, observed presence)
+* `d` true negatives
+
+```{r}
+score_f <- function(a,b,c,d) {
+  n = a+b+c+d
+  sensitivity = a/(a+c)
+  specificity = d/(b+d)
+  x = (a+b)*(a+c) + (c+d)*(d+b)
+  list(overall_accuracy = (a+d)/n,
+    sensitivity = sensitivity,
+    specificity = specificity,
+    kappa =  ( (a+d)/n - x/(n^2) ) / ( 1 - x/(n^2) ),
+    TSS = sensitivity + specificity - 1)
+}
+score_f(9, 4, 15, 137)
+```
+
+
+TSS reference: https://besjournals.onlinelibrary.wiley.com/doi/10.1111/j.1365-2664.2006.01214.x
 
 ## Generalized additive models
 
 What about non-linear responses?
 
 
-Abundances
+```{r}
+gam_model1 <- gam(log_abundance ~ s(Month, bs = "cc", k = 5)  + 
+                    s(NO3_NO2_USF, k = 3) + s(SiO4_USF, k = 3) + 
+                    # s(pH, k = 3) + s(Chlorophyll, k = 3) +
+                    s(TCO2, k = 3) + s(Temperature, k = 3) ,
+             data = one_spp |> filter(abundance>0) ,
+             select = TRUE)
+summary(gam_model1)
+draw(gam_model1, residuals = TRUE)
+
+gam_model1a <- gam(log_abundance ~ s(Month, bs = "cc", k = 5)  + 
+                    s(NO3_NO2_USF, k = 3) + s(SiO4_USF, k = 3) + 
+                    s(Temperature, k = 3) ,
+             data = one_spp |> filter(abundance>0) ,
+             select = TRUE)
+summary(gam_model1a)
+draw(gam_model1a, residuals = TRUE)
+```
+
+
+
+```{r}
+gam_model3 <- gam(presence ~ s(Year) + s(Month, bs = "cc", k= 5)  + 
+                    s(NH4_USF) + s(NO3_NO2_USF) + s(PO4_USF) + s(SiO4_USF) + s(pH) + s(Alkalinity_umol_kg) + 
+                       s(TCO2) + s(Salinity_bottles) + s(Temperature) + s(Chlorophyll),
+             data = one_spp_ss,
+             select = TRUE, 
+             family = binomial)
+summary(gam_model3)
+
+draw(gam_model3, select = c("s(NO3_NO2_USF)", "s(Temperature)", "s(Salinity_bottles)", "s(Chlorophyll)"  ))
+
+
+# Dropping variables that were shrunk to zero has no effect
+gam_model3a <- gam(presence ~  s(Month, bs = "cc", k= 5)  + 
+                    s(NO3_NO2_USF) + s(PO4_USF) + s(SiO4_USF) +  
+                       s(TCO2) + s(Salinity_bottles) + s(Temperature) + s(Chlorophyll),
+             data = one_spp_ss,
+             select = TRUE, 
+             family = binomial)
+summary(gam_model3a)
+
+draw(gam_model3a, select = c("s(NO3_NO2_USF)", "s(Temperature)", "s(Salinity_bottles)", "s(Chlorophyll)"  ))
+
+```
+
+
+
+
+## Abundances
 What to do with zero abundances?
 Logistic regression
 Functional groups
 Log ratios
 
+## Challenge exercise
+
+* Make a two step model. Make two models: one for the probability of presence and one for the log abundance, when abundance is non-zero. Then make a prediction for all locations. Use the predicted log abundance times the probability of presence.
 
 ## Extensions
 
