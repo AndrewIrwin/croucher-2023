@@ -6,14 +6,54 @@ editor: source
 
 ## brms & stan
 
+`brms` is an R package that depends on an external program called `stan`. 
+
+* First you need to install software that lets you compile C++ code. `remotes::install_github("coatless-mac/macrtools")`
+* Then you can instal `brms` the usual way with R (`install.packages("brms")`). This will also install `stan` and several related R packages.
+
+**Windows testing needed**
+
 ## Temperature respone functions
+
+Boyd et al report that they fit the model with a combination of maximum likelihood and least squares optimization. Fitting a non-linear model can require a fair bit of trial and error when done with standard optimization methods. Markov Chain Monte Carlo fitting of a Bayesian model often will be more likely to find a good set of estimated parameters.
+
+For instructions on fitting non-linear models with brms see the [vignette](https://cran.rstudio.com/web/packages/brms/vignettes/brms_nonlinear.html).
+
+$$f(T) = ae^{bT}\left( 1-\left(\frac{T-z}{w/2}\right)^2\right)$$
+
+
+Checking for convergence: traceplots and Rhat.
+
+Understanding output: posterior distributions, mean, median, credible intervals. Correlations between parameters.
+
+Making conclusions from one model. Testing for differences with a Bayesian t-test.
+
+Hierarchical models.
+e.g.,    Hits  | trials(AtBats) ~ 1 + (1 | PriPos) + (1 | PriPos:Player),
+from https://bookdown.org/ajkurz/DBDA_recoded/hierarchical-models.html
+
+
 
 
 ## GAMs with brms
 
+CO2 example.
+
+Phytoplankton example.
+
+
 ## Differential equations and growth rate
+
+Write a food web model for N, P, Z, and try to fit the parameters. Treat each year as a replicate.
+
+Plot a pair of data to look for predator prey / seasonal cycles.
+N-P, P-Z phase portraits
 
 
 ## Food web model
 
 
+## Neural ODE
+
+For discovery of dynamics, Possibly. 
+PDF: nascent undeveloped projects / species distribution models / neural ode bayesian inference julia 2012.07244

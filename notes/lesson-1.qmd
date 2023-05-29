@@ -6,7 +6,7 @@ editor: source
 
 ## Cariaco time series
 
-The CARIACO project (Carbon Retention in a Colored Ocean) ran for about 20 years from 1997-2017. Samples were collected in most months, with an increasing number of gaps near the end of the project. A primary goal of the project was to better understand carbon export in this part of the ocean which is notable for its well preserved and laminated sediments. Here we will use the samples of phytoplankton and zooplankton from the upper mixed layer.
+The CARIACO project (Carbon Retention in a Colored Ocean) ran for about 20 years from 1995-2017. Samples were collected in most months, with an increasing number of gaps near the end of the project. A primary goal of the project was to better understand carbon export in this part of the ocean which is notable for its well preserved and laminated sediments. Here we will use the samples of phytoplankton and zooplankton from the upper mixed layer.
 
 Data are arcived on BCO-DMO. A subset of the data we will use is in the github project.
 
