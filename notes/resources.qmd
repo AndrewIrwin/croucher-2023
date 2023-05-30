@@ -71,3 +71,11 @@ Hierarchical species distribution models.
 -   Norberg, Anna *et al.* (2019) A comprehensive evaluation of predictive performance of 33 species distribution models at species and community levels. *Ecological Monographs*, **89:** e01370. [10.1002/ecm.1370](https://dx.doi.org/10.1002/ecm.1370)
 
 -   Ovaskainen, Otso, Gleb Tikhonov, Anna Norberg, F. Guillaume Blanchet, Leo Duan, David Dunson, Tomas Roslin and Nerea Abrego (2017) How to make more out of community data? A conceptual framework and its implementation as models and software. *Ecology Letters* **20**: 561-576. [10.1111/ele.12757](https://dx.doi.org/10.1111/ele.12757)
+
+
+## SDMs in general
+
+* L. M. Robinson, J. Elith, A. J. Hobday, R. G. Pearson, B. E. Kendall, H. P. Possingham, A. J. Richardson
+(2011) Pushing the limits in marine species distribution modelling: lessons from the land present challenges and opportunities. _Global Ecology and Biogeography_ [10.1111/j.1466-8238.2010.00636.x](https://doi.org/10.1111/j.1466-8238.2010.00636.x)
+
+* Ethan Lawler, Chris Field, Joanna Mills Flemming (2021) Species distribution modelling with spatio-temporal nearest neighbour Gaussian processes. _arXiv_ [10.48550/arXiv.2105.06902](https://doi.org/10.48550/arXiv.2105.06902)

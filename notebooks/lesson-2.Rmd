@@ -15,6 +15,8 @@ library(readxl)
 library(brms)
 ```
 
+None of these work well... 
+
 ## Temperature response curves
 
 Read data from Boyd et al and Liang et al. Plot growth rates.
@@ -33,13 +35,80 @@ Fit the temperature response curve.
 
 ```{r}
 prior1 <- prior(normal(1, 2), nlpar = "a") +
-  prior(normal(0, 2), nlpar = "b") +
-  prior(normal(0, 2), nlpar = "z") + 
-  prior(normal(0, 2), nlpar = "w")
+  prior(normal(1, 2), nlpar = "b") +
+  prior(normal(20, 2), nlpar = "z") + 
+  prior(normal(3, 2), nlpar = "w")
 fit1 <- brm(bf(growth_rate_d ~ a * exp(b * temperature_C)*(1-((temperature_C - z)/(w/2))^2), 
                a + b + z + w ~ 1,
                nl = TRUE),
-            data = growth_temperature, 
-            prior = prior1)
+            data = growth_temperature |> filter(strain == "CCMP160"), 
+            prior = prior1,
+            iter = 5000,
+            save_model = "temp-response-1.stan")
 
+```
+
+Look at output
+
+```{r}
+summary(fit1)
+plot(fit1)
+pp_check(fit1)
+plot(conditional_effects(fit1))
+```
+
+
+Fit a model for two species with difference optimal temperatures.
+
+```{r}
+prior1 <- prior(normal(1, 2), nlpar = "a") +
+  prior(normal(1, 2), nlpar = "b") +
+  prior(normal(20, 2), nlpar = "z") + 
+  prior(normal(3, 2), nlpar = "w")
+fit2 <- brm(bf(growth_rate_d ~ a * exp(b * temperature_C)*(1-((temperature_C - z)/(w/2))^2), 
+               a + b + w ~ 1,
+               z ~ strain, # 1 + (1 | strain),
+               nl = TRUE),
+            data = growth_temperature |> filter(strain == "CCMP160" | strain == "CCMP158"), 
+            prior = prior1,
+            iter = 5000,
+            save_model = "temp-response-2.stan")
+
+```
+
+
+Look at output
+
+```{r}
+summary(fit2)
+plot(fit2, ask= FALSE)
+pp_check(fit2)
+plot(conditional_effects(fit2))
+```
+
+
+Simpler model
+
+Fit a model for two species with difference optimal temperatures.
+
+```{r}
+prior3 <- prior(normal(1, 2), nlpar = "b") +
+  prior(normal(20, 2), nlpar = "z") 
+
+fit3 <- brm(bf(growth_rate_d ~ exp(-b*(temperature_C - z)^2), 
+               b ~ 1, 
+               z ~ 1 + (1 | strain), # random intercept
+               nl = TRUE),
+            data = growth_temperature |> filter(strain == "CCMP160" | strain == "CCMP158"), 
+            prior = prior3,
+            iter = 10000,
+            save_model = "temp-response-3.stan")
+update(fit3, iter = 10000)
+```
+
+```{r}
+fit3
+plot(fit3)
+pp_check(fit3)
+plot(conditional_effects(fit3))
 ```
