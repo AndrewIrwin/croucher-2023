@@ -130,11 +130,13 @@ The formula interface is not available for glmnet (but see the package `glmnetUt
 diatom_environment_ss <- diatom_environment |> 
   filter(ScientificName_accepted == "Leptocylindrus danicus") |>
   filter(!(is.na(NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + 
-                   Salinity_bottles + pH + depth+ Month_local)))
-y <- diatom_environment_ss$present
+                   Salinity_bottles + pH + depth + Month_local)))
+# y <- diatom_environment_ss |> pull(present)
+y <- diatom_environment_ss$present # same thing
 x <- diatom_environment_ss |> select(NO3_NO2_USF, PO4_USF, SiO4_USF, Temperature, 
                                      Salinity_bottles,  pH, depth, Month_local) |>
   as.matrix() |> scale()
+set.seed(1)
 model3 <- cv.glmnet(x, y, family = "binomial", alpha = 1)
 model3
 plot(model3)
@@ -173,6 +175,7 @@ y <- diatom_sum_environment_ss$log_abundance
 x <- diatom_sum_environment_ss |> select(NO3_NO2_USF, PO4_USF, SiO4_USF, Temperature, 
                                          Salinity_bottles, pH, depth, Month_local) |>
   as.matrix() |> scale()
+set.seed(1)
 model5 <- cv.glmnet(x, y, family = "gaussian", alpha = 1.0)
 model5
 plot(model5)
