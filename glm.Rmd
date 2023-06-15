@@ -1,0 +1,221 @@
+---
+title: "Generalized Linear Models"
+author: "A Irwin"
+date: "2023-06-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(tidyverse, quietly = TRUE)
+library(glmnet)
+library(broom)
+```
+
+Read data files.
+
+```{r message=FALSE}
+niskin <- read_csv("Cariaco/niskin-ss.csv")
+diatom <- read_csv("Cariaco/diatoms-selected.csv") |>
+  pivot_longer(d_1m:d_100m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_remove(depth, "d_") |> str_remove("m") |> as.numeric(),
+         present = abundance > 0)
+diatom_environment <- diatom |> left_join(niskin, by = c("Cruise_ID_2" = "Cruise_ID", "depth")) |>
+  mutate(log_abundance = log(abundance))
+diatom_sum <- read_csv("Cariaco/diatoms-selected-sum.csv") |>
+  pivot_longer(d_1m:d_100m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_remove(depth, "d_") |> str_remove("m") |> as.numeric(),
+         high_abundance = abundance > 0.1)
+diatom_sum_environment <- diatom_sum |> left_join(niskin, by = c("Cruise_ID_2" = "Cruise_ID", "depth")) |>
+  mutate(log_abundance = log(abundance))
+```
+
+Make a generalized linear model to predict presence or absence of a species.
+
+```{r}
+model1 <- glm(present ~ NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + 
+                Salinity_bottles + pH + depth + Month_local, 
+             data = diatom_environment |> 
+               # filter(ScientificName_accepted == "Dactyliosolen fragilissimus"),
+               filter(ScientificName_accepted == "Leptocylindrus danicus"),
+               # filter(ScientificName_accepted == "Navicula sp."),
+             family = "binomial"
+             )
+summary(model1)
+```
+
+Extract model coefficients and parameters.
+
+Deviance is a generalization of the residual sum of squares (or sum of squared errors) from an ordinary linear model. For more on deviance see, for example, <https://rpubs.com/fhernanb/deviance_glm>.
+
+```{r}
+tidy(model1, conf.int = TRUE)
+glance(model1) # 12% of deviance explained
+```
+
+This $R^2$ is not the same as an ordinary linear model. It varies from 0 (worst model) to 1 (perfect model), but does not have the interpretation of the proportion of variance explained by the model.
+
+```{r}
+r2glm <- function(model) {
+  summaryLog <- summary(model)
+  1 - summaryLog$deviance / summaryLog$null.deviance
+}
+r2glm(model1)
+```
+
+## Plots
+
+Show a boxplot of fitted values (logit of probability of presence) for observations where the species is present or absent.
+
+```{r}
+augment(model1) |>
+  ggplot(aes(present, .fitted)) +
+  geom_boxplot() + 
+  theme_bw()
+```
+
+
+Confusion matrix
+
+```{r}
+augment(model1) |>
+  count(present, exp(.fitted) > 0.5)
+```
+
+## Second model
+
+Make a generalized linear model to predict relatively high abundance of diatoms.
+
+```{r}
+model2 <- glm(high_abundance ~ NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + 
+                Salinity_bottles + pH + depth + Month_local, 
+             data = diatom_sum_environment,
+               family = "binomial"
+             )
+summary(model2)
+```
+
+
+```{r}
+tidy(model2, conf.int = TRUE)
+glance(model2) # 18% of deviance explained
+r2glm(model2)
+```
+
+```{r}
+augment(model2) |>
+  ggplot(aes(high_abundance, .fitted)) +
+  geom_boxplot() + 
+  theme_bw()
+```
+
+Confusion matrix
+
+```{r}
+augment(model2) |>
+  count(high_abundance, exp(.fitted) > 0.5)
+```
+
+## LASSO
+
+How should we decide which predictors to include? Add a penalty to the optimization criterion. Instead of just minimizing the sum of squared residuals, also add in an amount proportional to the square or absolute value of the coefficients.  If a parameter does not "help" your predictions, the best solution will be to make that coefficient zero, or close to it. For this to make sense, each predictor should have the same standard deviation (usually 1) unless you want _a priori_ to make one predictor more or less important than another.
+
+For $\alpha = 0$, we get the ridge regression solution (penalizes by the square of the coefficients.) For $\alpha = 1$, we get the LASSO solution (penalizes by the magnitude of the coefficients.) Both methods enable variable selection by shrinking coefficients towards 0. For other values we get elastic net, which is a combination of LASSO and ridge penalties. A common approach is to try $\alpha$ is 0, 0.25, 0.5, 0.75, and 1 to see if there is any variation in the result.
+
+LASSO does variable selection; Ridge regression simply makes some parameters small.
+
+The formula interface is not available for glmnet (but see the package `glmnetUtils`.)
+
+```{r}
+diatom_environment_ss <- diatom_environment |> 
+  filter(ScientificName_accepted == "Leptocylindrus danicus") |>
+  filter(!(is.na(NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + 
+                   Salinity_bottles + pH + depth+ Month_local)))
+y <- diatom_environment_ss$present
+x <- diatom_environment_ss |> select(NO3_NO2_USF, PO4_USF, SiO4_USF, Temperature, 
+                                     Salinity_bottles,  pH, depth, Month_local) |>
+  as.matrix() |> scale()
+model3 <- cv.glmnet(x, y, family = "binomial", alpha = 1)
+model3
+plot(model3)
+model4 <- glmnet(x, y, family = "binomial", lambda = model3$lambda.min, alpha = 1)
+model4
+```
+
+```{r}
+tidy(model4) # also # coef(model4)
+```
+
+```{r}
+diatom_environment_ss |>
+  mutate(predict = as.vector(predict(model4, newx = x))) |>
+  ggplot(aes(present, predict)) +
+  geom_boxplot() + 
+  theme_bw()
+```
+
+Confusion matrix
+
+```{r}
+diatom_environment_ss |>
+  mutate(predict = as.vector(predict(model4, newx = x))) |>
+  count(present, exp(predict) > 0.5)
+
+```
+
+
+```{r}
+diatom_sum_environment_ss <- diatom_sum_environment |>
+  filter(!(is.na(NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + Salinity_bottles + 
+                   pH + depth + Month_local)),
+         abundance > 0)
+y <- diatom_sum_environment_ss$log_abundance
+x <- diatom_sum_environment_ss |> select(NO3_NO2_USF, PO4_USF, SiO4_USF, Temperature, 
+                                         Salinity_bottles, pH, depth, Month_local) |>
+  as.matrix() |> scale()
+model5 <- cv.glmnet(x, y, family = "gaussian", alpha = 1.0)
+model5
+plot(model5)
+model6 <- glmnet(x, y, family = "gaussian", lambda = model5$lambda.min, alpha = 1.0)
+model6
+```
+
+```{r}
+tidy(model6) # also # coef(model6)
+```
+
+## Plots
+
+Show predicted log abundance vs observed.
+
+```{r}
+diatom_sum_environment_ss |>
+  mutate(predict = as.vector(predict(model6, newx = x, type = "response"))) |>
+  ggplot(aes(log_abundance, predict)) +
+  geom_point() + 
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_bw()
+```
+
+Show residuals vs predictions.
+
+```{r}
+diatom_sum_environment_ss |>
+  mutate(predict = as.vector(predict(model6, newx = x)),
+         residuals = log_abundance - predict) |>
+  ggplot(aes(predict, residuals)) +
+  geom_point() + 
+  theme_bw()
+```
+
+Are the residuals Normally distributed?
+
+```{r}
+diatom_sum_environment_ss |>
+  mutate(predict = as.vector(predict(model6, newx = x)),
+         residuals = log_abundance - predict) |>
+  ggplot(aes(sample = residuals)) +
+  stat_qq() + stat_qq_line() + 
+  theme_bw()
+
+```

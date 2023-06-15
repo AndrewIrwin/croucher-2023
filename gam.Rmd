@@ -1,0 +1,105 @@
+---
+title: "Generalized additive models"
+author: "A Irwin"
+date: "2023-06-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse, quietly = TRUE)
+library(mgcv)
+library(gratia)
+```
+
+
+Read data files.
+
+```{r message=FALSE}
+niskin <- read_csv("Cariaco/niskin-ss.csv")
+diatom <- read_csv("Cariaco/diatoms-selected.csv") |>
+  pivot_longer(d_1m:d_100m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_remove(depth, "d_") |> str_remove("m") |> as.numeric(),
+         present = abundance > 0)
+diatom_environment <- diatom |> left_join(niskin, by = c("Cruise_ID_2" = "Cruise_ID", "depth")) |>
+  mutate(log_abundance = log(abundance))
+diatom_sum <- read_csv("Cariaco/diatoms-selected-sum.csv") |>
+  pivot_longer(d_1m:d_100m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_remove(depth, "d_") |> str_remove("m") |> as.numeric(),
+         high_abundance = abundance > 0.1)
+diatom_sum_environment <- diatom_sum |> left_join(niskin, by = c("Cruise_ID_2" = "Cruise_ID", "depth")) |>
+  mutate(log_abundance = log(abundance))
+```
+
+Make a generalized linear model to predict presence or absence of a species.
+
+```{r}
+model1 <- gam(present ~ s(NO3_NO2_USF) + s(PO4_USF) + s(SiO4_USF) + 
+                s(Temperature) + s(Salinity_bottles) + 
+                s(pH) + s(Month_local, bs = "cc"), 
+             data = diatom_environment |> 
+               # filter(ScientificName_accepted == "Dactyliosolen fragilissimus"),
+               filter(ScientificName_accepted == "Leptocylindrus danicus"),
+               # filter(ScientificName_accepted == "Navicula sp."),
+             family = "binomial",
+             select = TRUE
+             )
+summary(model1)
+```
+
+Draw response functions.
+
+```{r}
+draw(model1, select = c(1:2, 4:5, 7))
+```
+
+```{r}
+draw(model1, select = c(1:2, 4:5, 7), residuals = TRUE)
+```
+
+
+## Model total diatom abundance
+
+```{r}
+diatom_sum_environment_ss <- diatom_sum_environment |>
+  filter(abundance > 0)
+model3 <- gam(log_abundance ~ s(NO3_NO2_USF) + s(PO4_USF) + s(SiO4_USF) +
+                s(Temperature) + s(Salinity_bottles) + s(pH) + 
+                s(Month_local, bs = "cc") + depth + s(Year_local), 
+             data = diatom_sum_environment_ss,
+             family = "gaussian",
+             select = TRUE
+             )
+summary(model3)
+```
+
+```{r}
+draw(model3, select = c(3:4, 6:8))
+```
+
+
+```{r}
+draw(model3, select = c(3:4, 6:8), residuals = TRUE)
+```
+
+## Utility functions
+
+Show the basis functions for a predictor from the previous model.
+
+
+```{r}
+basis(s(Temperature), data = diatom_sum_environment_ss |> filter(!is.na(Temperature))) |>
+  ggplot(aes(y = value, x = Temperature, group = bf, color = bf)) + 
+  geom_line() + 
+  theme_bw()
+```
+
+
+This is piecewise linear because it is only evaluated at the integers 1 to 12. Use a different variable, or add `bs="cc"` to the temperature example above to see smooth versions of the basis functions.
+
+```{r}
+basis(s(Month_local, bs = "cc"), data = diatom_sum_environment_ss) |>
+  ggplot(aes(y = value, x = Month_local, group = bf, color = bf)) + 
+  geom_line() + 
+  theme_bw()
+```

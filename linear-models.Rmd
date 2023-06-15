@@ -1,0 +1,99 @@
+---
+title: "Linear models"
+author: "A Irwin"
+date: "2023-06-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(tidyverse, quietly = TRUE)
+library(broom)
+```
+
+Read data files.
+
+```{r message=FALSE}
+niskin <- read_csv("Cariaco/niskin-ss.csv")
+diatom_sum <- read_csv("Cariaco/diatoms-selected-sum.csv") |>
+  pivot_longer(d_1m:d_100m, names_to = "depth", values_to = "abundance") |>
+  mutate(depth = str_remove(depth, "d_") |> str_remove("m") |> as.numeric() )
+diatom_sum_environment <- diatom_sum |> left_join(niskin, by = c("Cruise_ID_2" = "Cruise_ID", "depth")) |>
+  mutate(log_abundance = log(abundance))
+```
+
+Make a linear model for total abundance.
+
+```{r}
+model1 <- lm(abundance ~ NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + Salinity_bottles + pH, 
+             data = diatom_sum_environment |> filter(depth == 1))
+summary(model1)
+```
+
+We get a significant effect of temperature and pH. About 21% of variation in the data are explained by these variables.
+
+Try log abundance.
+
+```{r}
+diatom_sum_environment_1m_no_zero <- diatom_sum_environment |> filter(depth == 1, abundance > 0)
+model2 <- lm(log_abundance ~ NO3_NO2_USF + PO4_USF + SiO4_USF + Temperature + Salinity_bottles + pH, 
+             data = diatom_sum_environment_1m_no_zero)
+summary(model2)
+
+```
+
+Same variables are significant, but we explain 49% of the total variance. The coefficients are different because we are predicting log abundance instead of abundance, but the signs are the same.
+
+Use `broom` pacakge functions to extract coefficients and model diagnositics into a data frame.
+
+```{r}
+tidy(model2, conf.int = TRUE)
+glance(model2)
+```
+
+## Plots
+
+Show predicted vs. observed log diatom abundance.
+
+```{r}
+augment(model2) |>
+  ggplot(aes(log_abundance, .fitted)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_bw()
+```
+
+Show residuals as a function of fitted values; should be a 'null plot'.
+
+```{r}
+augment(model2) |> # change to model1 to see why predicting abundance is a bad idea
+  ggplot(aes(.fitted, .resid)) + # looks great
+  geom_point() +
+  geom_abline(intercept = 0, slope = 0) + 
+  theme_bw()
+```
+
+Show the quantile-quantile plot of the residuals to visually test if they are Normal.
+
+```{r}
+augment(model2) |>
+  ggplot(aes(sample = .resid)) + # looks great
+  stat_qq() + stat_qq_line() + 
+  theme_bw()
+```
+Is there a relationship between observed values and residuals? Sadly, yes.
+
+```{r}
+augment(model2) |>
+  ggplot(aes(log_abundance, .resid)) + # clear bias in residuals
+  geom_point() + 
+  theme_bw()
+```
+
+
+## Exercises
+
+Repeat this analysis for another group (dinoflagellates, coccolithophores).
+
+Repeat this analysis for a species observed frequently (or rarely if you want to see a terrible model.)
+
