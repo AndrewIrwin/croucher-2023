@@ -1,8 +1,11 @@
 ---
 title: "Generalized Linear Models"
 author: "A Irwin"
-date: "2023-06-09"
-output: html_document
+date: "2023-06-15"
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
